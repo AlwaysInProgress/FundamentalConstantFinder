@@ -35,9 +35,8 @@ c1 = n1 _ c_k ^ a1 _ c_k1 ^ a2
 
 c_1 is a linear combination of (c_2, ...,c_n) = c_1 \* an nx1 vector
 
-OP = (c_2, ...,c_n)_matrix_(c_2, ...,c_n)^T
+OP = (c*2, ...,c_n)\_matrix*(c_2, ...,c_n)^T
 
 OP([[A, B],[C, D]]) = Ax^2 + (B+C)xy + Dy^2
 
 c_1 = c_2 ^ n / c_3 ^ n - 1
-# FundementalConstantFinder
