@@ -24,10 +24,10 @@ def expOp(c1, c2):
     return c1 ** c2
 
 def nestOp(func1, func2, c1, c2, c3):
-    return func1(func2(c1,c2), c3)
+    return func1(func2(c1, c2), c3)
 
 # recursive function
-def recurse(res, consts, used, target, func): # nested = None):
+def recurse(res, consts, used, target, func, nester = None, nestee = None, third_const = None):
     # print(res, consts, used, target, func.__name__)
 
     if abs(res - target) < 1e-6:
@@ -38,32 +38,30 @@ def recurse(res, consts, used, target, func): # nested = None):
         constCopy = consts[:]
         usedCopy = used[:]
         usedCopy.append(constCopy.pop(idx))
-        recurse(func(res, const), constCopy, usedCopy, target, func)
+
+        if func.__name__ == "nestOp" and nester != None and nestee != None and third_const != None:
+            recurse(func(nester, nestee, res, const, third_const), constCopy, usedCopy, target, func, nester, nestee, third_const)
+        else:
+            recurse(func(res, const), constCopy, usedCopy, target, func)
 
 def main():
-    ops = [addOp, mulOp, expOp]
+    ops = [addOp, mulOp, expOp, nestOp]
+    nestOps = ops[:-1]
 
     # constants must not contain 0 or 1
-    constants = [1,2,3,3]
-    target = 9
+    constants = [2,5,7,2]
+    target = 49
 
     for op in ops:
         for i, const in enumerate(constants):
-            remainder = constants[:]
-            remainder.pop(i)
-            recurse(const, remainder, [const], target, op)
+            for nester_func in nestOps:
+                for nestee_func in nestOps:
+                    for third_const in constants:
+                        remainder = constants[:]
+                        remainder.pop(i)
+                        recurse(const, remainder, [const], target, op, nester_func, nestee_func, third_const)
 
 main()
-
-
-'''
-TODO:
--Make nesting clean/functional
--Pretty print
--Limit size of exponents
--Prune with commutivity of addition/multiplication with flag or something
-'''
-
 
 
 
