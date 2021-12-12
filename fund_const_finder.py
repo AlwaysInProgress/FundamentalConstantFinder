@@ -26,14 +26,33 @@ def expOp(c1, c2):
 def nestOp(func1, func2, c1, c2, c3):
     return func1(func2(c1,c2), c3)
 
+def prettyPrint(used,func, target):
+    output = ""
+    for idx,item in enumerate(used):
+        if idx >= (len(used)-1):
+            char = ""
+        elif func.__name__ == "addOp":
+            char = "+"
+        elif func.__name__ == "mulOp":
+            char = "*"
+        elif func.__name__ == "expOp":
+            char = "^"
+        
+        output += str(item) + char
+
+    output += " = " + str(target) + "\n"
+    print(output)
+
 # recursive function
 def recurse(res, consts, used, target, func): # nested = None):
     # print(res, consts, used, target, func.__name__)
 
-    if abs(res - target) < 1e-6:
-    # if res == target:
-        print("found", used, func.__name__)
+    # if abs(res - target) < 1e-6:
+    if res == target:
+        # print("found", used, func.__name__)
+        prettyPrint(used,func, target)
 
+    # iterate for all constants in fixed order
     for idx,const in enumerate(consts):
         constCopy = consts[:]
         usedCopy = used[:]
@@ -42,12 +61,13 @@ def recurse(res, consts, used, target, func): # nested = None):
 
 def main():
     ops = [addOp, mulOp, expOp]
-
     # constants must not contain 0 or 1
-    constants = [1,2,3,3]
-    target = 9
+    constants = [1,2,3,4,5,6,7]
+    target = 720
 
+    # iterate through all single operations
     for op in ops:
+        #iterate through all starting constants
         for i, const in enumerate(constants):
             remainder = constants[:]
             remainder.pop(i)
