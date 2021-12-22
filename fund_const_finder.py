@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-import math
-import numpy as np
-
+from __future__ import annotations
+from typing import List, Tuple
 
 # constants
 const_dict = {"c":299792458, "mu_0":12.566370614e-7, "eps_0":8.854187817e-12, "G":6.6740831e-11, "h":6.62607004081e-34,
@@ -13,6 +12,9 @@ const_list = []
 for key in const_dict:
     const_list.append(const_dict[key])
 
+MAX_VAL = 2**64
+MAX_EXP = 11
+
 # fundamental functions
 def addOp(c1, c2):
     return c1 + c2
@@ -23,69 +25,104 @@ def mulOp(c1, c2):
 def expOp(c1, c2):
     return c1 ** c2
 
-def nestOp(func1, func2, c1, c2, c3):
-    return func1(func2(c1,c2), c3)
+OPS = [addOp, mulOp, expOp]
 
-def prettyPrint(used,func, target):
-    output = ""
-    for idx,item in enumerate(used):
-        if idx >= (len(used)-1):
-            char = ""
-        elif func.__name__ == "addOp":
-            char = "+"
-        elif func.__name__ == "mulOp":
-            char = "*"
-        elif func.__name__ == "expOp":
-            char = "^"
-        
-        output += str(item) + char
+def opToString(op) -> str:
+    if op == addOp:
+        return "+"
+    elif op == mulOp:
+        return "*"
+    elif op == expOp:
+        return "^"
+    else:
+        return "?"
+class Bookkeeper():
+    def __init__(self, target: int, consts: List[int], history: List[Tuple[int, str, int]] = [], foundit: bool = False):
+        self.target = target
+        self.consts = consts
+        self.history = history
+        self.foundit = foundit
 
-    output += " = " + str(target) + "\n"
-    print(output)
+    def copy(self):
+        return Bookkeeper(self.target, self.consts[:], self.history[:], self.foundit)
 
-# recursive function
-def recurse(res, consts, used, target, func): # nested = None):
-    # print(res, consts, used, target, func.__name__)
+    def nextGen(self) -> List[Bookkeeper]:
+        nextBooks: List[Bookkeeper] = []
 
-    # if abs(res - target) < 1e-6:
-    if res == target:
-        # print("found", used, func.__name__)
-        prettyPrint(used,func, target)
+        if self.foundit:
+            return nextBooks
 
-    # iterate for all constants in fixed order
-    for idx,const in enumerate(consts):
-        constCopy = consts[:]
-        usedCopy = used[:]
-        usedCopy.append(constCopy.pop(idx))
-        recurse(func(res, const), constCopy, usedCopy, target, func)
+        # Generate Pairs to check
+        pairs: List[Tuple[int, int]] = []
+        for i, const1 in enumerate(self.consts):
+            for j, const2 in enumerate(self.consts):
+                if i != j and const1 < MAX_VAL and const2 < MAX_VAL:
+                    pairs.append((const1, const2))
+
+        for pair in pairs: # For each pair, try every possible operation
+            for op in OPS:
+                if op == expOp:
+                    if pair[0] > MAX_EXP:
+                        continue
+                    if pair[1] > MAX_EXP:
+                        continue
+
+                newVal = op(pair[0], pair[1]) # Perform the operation
+                if newVal == self.target:
+                    self.foundit = True
+
+                bk = self.copy()
+
+                # Remove old values and replace with new
+                bk.consts.remove(pair[0])
+                bk.consts.remove(pair[1])
+                bk.consts.append(newVal)
+                bk.history.append((pair[0], opToString(op), pair[1]))
+
+                nextBooks.append(bk)
+
+        return nextBooks
+
+def recurse(bookKeeper: Bookkeeper):
+    if (bookKeeper.foundit):
+        print("Found it!", bookKeeper.history, " = ", bookKeeper.target)
+        return True
+    # Get first two constants, these will be what we op on first
+    nextBks = bookKeeper.nextGen()
+    for bk in nextBks:
+        if (recurse(bk)):
+            return True
+    return False
 
 def main():
-    ops = [addOp, mulOp, expOp]
-    # constants must not contain 0 or 1
-    constants = [1,2,3,4,5,6,7]
-    target = 720
-
-    # iterate through all single operations
-    for op in ops:
-        #iterate through all starting constants
-        for i, const in enumerate(constants):
-            remainder = constants[:]
-            remainder.pop(i)
-            recurse(const, remainder, [const], target, op)
+    target = 120
+    consts = [1,2,3,4,5,6]
+    bk = Bookkeeper(target, consts)
+    recurse(bk)
 
 main()
 
-
 '''
 TODO:
--Make nesting clean/functional
--Pretty print
--Limit size of exponents
 -Prune with commutivity of addition/multiplication with flag or something
 '''
 
 
 
+# 2c + 3
+
+
+# 1, 2, 3
+    # (1 + 2, 3)
+    # (1 + 2, 3)
+        # a: [0, 5]
+        # ((1 + a) + 2, 3)
+        # ((1 * a) + 2, 3)
+        # ((1 ^ a) + 2, 3)
+        # (1 + (2 + a), 3)
+        # (1 + (2 * a), 3)
+        # (1 + (2 ^ a), 3)
+# (1 * 2, 3)
 
 # 1 -> 2
 # 1 -> 3
