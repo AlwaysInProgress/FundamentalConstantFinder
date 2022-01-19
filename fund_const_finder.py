@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Optional
+import time
+import sys
+import copy
 
-# constants
+
 const_dict = {"c":299792458, "mu_0":12.566370614e-7, "eps_0":8.854187817e-12, "G":6.6740831e-11, "h":6.62607004081e-34,
 "e":1.602176620898e-19, "phi_0":2.06783383113e-15, "G_0":7.748091731018e-5, "m_e":9.1093835611e-31, "m_p":1.67262189821e-27,
 "m_p/m_e":1836.1526738917, "alpha":7.297352566417e-3, "R_inf":10973731.56850865, "Avogadro":6.02214085774e23,
@@ -36,15 +39,66 @@ def opToString(op) -> str:
         return "^"
     else:
         return "?"
+
+class History():
+    def __init__(self, history: Dict[int, List[str]]):
+        self.history = history
+
+    def copy(self):
+        return History(copy.deepcopy(self.history))
+
+    def __str__(self):
+        for key in self.history:
+            print(key, ":", self.history[key][0])
+
+    def nextExpression(self, val1: int, val2: int, op: str, result: int) -> str:
+        val1Str = self.findAndRemoveResult(val1) or str(val1)
+        val2Str = self.findAndRemoveResult(val2) or str(val2)
+        expression = val1Str + op + val2Str
+        if result in self.history:
+            self.history[result].append(expression)
+        else:
+            self.history[result] = [expression]
+
+    def findAndRemoveResult(self, result: int) -> Optional[str]:
+        if result in self.history:
+            val = self.history[result].pop(0)
+            if len(self.history[result]) == 0:
+                del self.history[result]
+            return f"({val})"
+        return None
+
 class Bookkeeper():
-    def __init__(self, target: int, consts: List[int], history: List[Tuple[int, str, int]] = [], foundit: bool = False):
+    def __init__(self, target: int, consts: List[int], history: History = History({}), foundit: bool = False):
         self.target = target
         self.consts = consts
         self.history = history
         self.foundit = foundit
 
+    def __repr__(self):
+        return "Consts: %s Hist: %s" % (self.consts, self.history)
+
+    def __eq__(self, other):
+        if isinstance(other, Bookkeeper):
+            # check if both arrays contain the same values
+            for item in self.consts:
+                if item not in other.consts:
+                    return False
+            for item in other.consts:
+                if item not in self.consts:
+                    return False
+            return True
+        else:
+            return False
+
+    def __ne__(self, other):
+        return (not self.__eq__(other))
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
     def copy(self):
-        return Bookkeeper(self.target, self.consts[:], self.history[:], self.foundit)
+        return Bookkeeper(self.target, self.consts[:], self.history.copy(), self.foundit)
 
     def nextGen(self) -> List[Bookkeeper]:
         nextBooks: List[Bookkeeper] = []
@@ -61,13 +115,13 @@ class Bookkeeper():
 
         for pair in pairs: # For each pair, try every possible operation
             for op in OPS:
-                if op == expOp:
-                    if pair[0] > MAX_EXP:
-                        continue
-                    if pair[1] > MAX_EXP:
-                        continue
+
+                # Skip if exp is too large
+                if op == expOp and pair[1] > MAX_EXP:
+                    continue
 
                 newVal = op(pair[0], pair[1]) # Perform the operation
+
                 if newVal == self.target:
                     self.foundit = True
 
@@ -77,10 +131,20 @@ class Bookkeeper():
                 bk.consts.remove(pair[0])
                 bk.consts.remove(pair[1])
                 bk.consts.append(newVal)
-                bk.history.append((pair[0], opToString(op), pair[1]))
+
+                # Add to history
+                newHistory = bk.history.copy()
+                newHistory.nextExpression(pair[0], pair[1], opToString(op), newVal)
+                bk.history = newHistory
 
                 nextBooks.append(bk)
 
+        # Add 2
+
+
+
+        # Remove duplicates
+        # nextBooks = list(set(nextBooks))
         return nextBooks
 
 def recurse(bookKeeper: Bookkeeper):
@@ -94,55 +158,26 @@ def recurse(bookKeeper: Bookkeeper):
             return True
     return False
 
-def main():
-    target = 120
-    consts = [1,2,3,4,5,6]
+
+def nextCase(file):
+    # First line are the constants
+    consts = [int(x) for x in file.readline().split(",")]
+    # second line is the target
+    target = int(file.readline())
     bk = Bookkeeper(target, consts)
+    startTime = time.perf_counter()
     recurse(bk)
+    print("Took", time.perf_counter() - startTime, "seconds")
+    print(bk.history)
 
-main()
-
-'''
-TODO:
--Prune with commutivity of addition/multiplication with flag or something
-'''
-
-
-
-# 2c + 3
-
-
-# 1, 2, 3
-    # (1 + 2, 3)
-    # (1 + 2, 3)
-        # a: [0, 5]
-        # ((1 + a) + 2, 3)
-        # ((1 * a) + 2, 3)
-        # ((1 ^ a) + 2, 3)
-        # (1 + (2 + a), 3)
-        # (1 + (2 * a), 3)
-        # (1 + (2 ^ a), 3)
-# (1 * 2, 3)
-
-# 1 -> 2
-# 1 -> 3
-# 1 -> 4
+testFileName = sys.argv[1]
+print(testFileName)
+with open(testFileName, "r") as file:
+    # While there is still data in the file
+    while True:
+        try:
+            nextCase(file)
+        except:
+            break
 
 
-# 2, [1, 2, 3]
-    # 3 [2, 3]
-        # 5, [3]
-            # 8
-        # 6, [2]
-            # 8
-    # 4 [1, 3]
-    # 5 [1, 2]
-
-
-# target = const_dict["c"]
-
-# const_list = np.array(const_list, dtype='float128')
-# print(const_list)
-
-# lin_comb_mat = np.array([][])
-# operator_mat = np.array([][])

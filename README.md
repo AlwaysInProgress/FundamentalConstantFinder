@@ -40,3 +40,73 @@ OP = (c*2, ...,c_n)\_matrix*(c_2, ...,c_n)^T
 OP([[A, B],[C, D]]) = Ax^2 + (B+C)xy + Dy^2
 
 c_1 = c_2 ^ n / c_3 ^ n - 1
+
+[((1, '+', 2), '+', 3),(4, '*', 5), (6, '*', 6), (20, '*', 36)]
+[(((4, '*', 5), '*', ((1, '+', 2), '+', 3), '*', 6))]
+
+BK { const = [1,2,3,4,5,6], history = []}
+BK { const = [3,3,4,5,6], history = [(1,'+',2)]}
+BK { const = [6,4,5,6], history = [(1,'+',2), (3 + 3)]}
+
+BK { const = [1,2,3,4,5,6], history = []}
+if not find NEW_RESULT in history
+VAL1 = 1
+VAL2 = 2
+RESULT = 3
+return [..., (VAL1 OP VAL2, RESULT)]
+BK { const = [3,3,4,5,6], history = [("1+2",3)]}
+VAL1 = 3 -> "1+2"
+VAL2 = 3
+OP="+"
+RESULT=6
+OLD_STR="1+2"
+OLD_RESULt=3
+return ("(LAST) OP LAST_RESULT", NEW_RESULT)
+BK { const = [6,4,5,6], history = ("(1+2)+3", 6)]}
+if not find NEW_RESULT in history
+VAL1 = 4
+VAL2 = 5
+RESULT = 20
+return [..., (VAL1 OP VAL2, RESULT)]
+BK { const = [20,6,6], history = [("(1+2)+3",6), ("4*5",20)]}
+BK { const = [20, 36], history = ("((1+2)+3)\*6",36), ("4*5",20)}
+VAL1=20
+VAL2=36
+OP="*"
+RESULT=720
+
+[("(((1+2)+3)*6)*20", 720), ("4*5", 20)]
+
+BK { const = [720], history = ("(((1+2)+3)\*6)\*(4\*5) }
+
+pseudocode pretty print (BK, op, val1, val2, result):
+val1Str = "(BK.history.findAndRemoveResult(val1))" || "val1"
+val2Str = "(BK.history.findAndRemoveResult(val2))" || "val2"
+return [...BK.history, ("val1Str op val2Str", result)]
+
+1.  val1Str = "((1+2)+3)\*6"
+    history = [("4*5",20)]
+2.  val2Str="4\*5"
+    history = []
+3.  return ["(((1+2)+3)\*6)\*(4\*5)"]
+
+BK { const = [20,6,6], history = [("(1+2)+3",6), ("4*5",20)]}
+VAL1=6
+VAL2=6
+OP="\*"
+
+1. val1str = "(1+2)+3"
+   history = [("4*5",20)]
+2. val2 = "6"
+   history = [("4*5",20)]
+   return [("4\*5",20), ("((1+2)+3)*6", 36)]
+
+- given val1, val2, op, history containing all previous operations in parallel
+- val1str = string corresponding to result if in history, else "val1"
+- remove element from history
+- val2str = string corresponding to result if in history, else "val2"
+- remove element from history
+- append "val1str op val2str" to history
+- return history
+
+{3: ["1+2"]}
